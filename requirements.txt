@@ -1,0 +1,5 @@
+tweepy
+numpy
+scipy
+Pillow==2.6.0
+matplotlib

@@ -1,0 +1,7 @@
+credentials.py
+output.gif
+images/
+venv/
+
+*.pyc
+*~
