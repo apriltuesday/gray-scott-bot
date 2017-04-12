@@ -1,4 +1,4 @@
-# @GrayScottBot
+# [@GrayScottBot](https://twitter.com/GrayScottBot)
 
 A bot that tweets out gifs of Gray-Scott simulations.
 
@@ -10,8 +10,5 @@ People who are much smarter and better at coding than me.
 
 ## To-Dos
 
-* fix image size issue
-* different initial conditions (square not good for every choice of f,k)
-** nu, xi, pi, rho, and sigma won't work
 * tweet params at it, will reply with image (absence of param yields random choice)
-** init based on user's profile pic?
+* init based on user's profile pic?

@@ -17,13 +17,10 @@ auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth)
 
 # params
+DELAY_IN_SEC = 3600
 IMAGE_FILE = 'output.gif'
-DAILY_POST_TIME = 8
-DELAY_IN_SEC = 60
-
-# simulation params
 IMAGE_SIZE = (256, 256)
-MAX_ITERS = 20000
+MAX_ITERS = 5000
 R_U = 0.2097
 R_V = 0.105
 T_STEP = 0.8
@@ -34,42 +31,58 @@ K_RANGE = (0.02, 0.07)
 
 ONES = np.ones(IMAGE_SIZE)
 
-# TODO filesize limits from tweepy...
-
 
 def generate_image(feed, kill):
-	U, V = init()
+	U, V = init(feed, kill)
+	#image.imsave('U_INIT.png', U, cmap='plasma')
+	#image.imsave('V_INIT.png', V, cmap='plasma')
 
 	for i in range(MAX_ITERS):
 		du = du_dt(U, V, feed, kill, R_U)
 		dv = dv_dt(U, V, feed, kill, R_V)
 		U += du * T_STEP
 		V += dv * T_STEP
-		if i%100 == 0:
+		if i > 500 and i%100 == 0:
 			image.imsave('images/U_{:05d}.png'.format(i), U, cmap='plasma')
 
 	subprocess.call(['convert',
 		'-delay', '10',
 		'-loop', '0',
-		#'-resize', '75%',
 		'images/U_*.png',
 		IMAGE_FILE])
 
 
-def init():
-	# TODO see mrob for initialization
-	w = IMAGE_SIZE[0] / 4
-	x = 3*w/2
+# see mrob's paper on u-skate
+def init(f, k):
+	# background
+	if k < (np.sqrt(f) - 2*f) / 2.0:
+		A = np.sqrt(f) / (f + k)
+		sqrt = np.sqrt(A**2 - 4.0)
+		u_back = (A - sqrt) / (2 * A)
+		v_back = np.sqrt(f) * (A + sqrt) / 2.0
+	else:
+		u_back = 0.0
+		v_back = 1.0
 
-	U = np.ones(IMAGE_SIZE) + image_noise()
-	V = np.zeros(IMAGE_SIZE) + image_noise()
-	U[x:x+w, x:x+w] -= 0.5
-	V[x:x+w, x:x+w] += 0.25
+	U = np.full(IMAGE_SIZE, u_back)
+	V = np.full(IMAGE_SIZE, v_back)
+
+	# rectangles
+	for i in range(np.random.randint(40)):
+		# dimensions
+		w = np.random.randint(1, IMAGE_SIZE[0] / 8)
+		h = np.random.randint(1, IMAGE_SIZE[0] / 8)
+		# coords of top left corner
+		x = np.random.randint(0, IMAGE_SIZE[0] - w)
+		y = np.random.randint(0, IMAGE_SIZE[0] - h)
+		# fill values
+		u_rect = np.random.random_sample()
+		v_rect = np.random.random_sample()
+
+		U[x:x+w, y:y+h] = u_rect
+		V[x:x+w, y:y+h] = v_rect
 
 	return U, V
-
-def image_noise():
-	return np.random.random_sample(IMAGE_SIZE) * 0.002 - 0.001
 
 
 def du_dt(U, V, f, k, ru):
@@ -79,13 +92,13 @@ def dv_dt(U, V, f, k, rv):
 	return rv * ndimage.filters.laplace(V) + U * V**2 - (f + k) * V
 
 
-def daily_post():
-	feed = 0.090 #np.random.uniform(F_RANGE[0], F_RANGE[1])
+def random_post():
+	feed = np.random.uniform(F_RANGE[0], F_RANGE[1])
 	kill = mean(feed) + noise(feed)
 	message = 'f={:f}, k={:f}'.format(feed, kill)
 	print message
 	generate_image(feed, kill)
-	#api.update_with_media(IMAGE_FILE, message)
+	api.update_with_media(IMAGE_FILE, message)
 
 
 def mean(x):
@@ -98,8 +111,7 @@ def noise(x):
 
 
 if __name__ == '__main__':
-	# TODO look for dms and set params
-	#now = datetime.now()
-	#if now.hour == DAILY_POST_TIME and now.minute < 1:
-	daily_post()
-	#time.sleep(DELAY_IN_SEC)
+	while True:
+		random_post()
+		time.sleep(DELAY_IN_SEC)
+
