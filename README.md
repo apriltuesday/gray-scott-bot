@@ -10,5 +10,6 @@ People who are much smarter and better at coding than me.
 
 ## To-Dos
 
+* simulation is iffy, can't get nu?
 * tweet params at it, will reply with image (absence of param yields random choice)
 * init based on user's profile pic?
