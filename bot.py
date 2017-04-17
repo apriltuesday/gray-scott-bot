@@ -1,124 +1,73 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
- 
+
 import tweepy
-import time
-from datetime import datetime
+import requests
+from PIL import Image
+import matplotlib
 import numpy as np
-from scipy import ndimage
-from matplotlib import image
-import subprocess
 
 from credentials import *
-from sample import *
- 
+from sample import sample_feed, sample_kill
+from simulate import generate_image
+
 # twitter auth
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth)
 
-# params
-DELAY_IN_SEC = 3600
-IMAGE_FILE = 'output.gif'
-IMAGE_SIZE = (256, 256)
-MAX_ITERS = 10000
-R_U = 2e-5 #0.2097
-R_V = 1e-5 #0.105
-T_STEP = 0.5 #0.8
-X_STEP = 1.0 / 143
+PIC_FILE = 'tmp.jpg'
+N_X = 256 # TODO repeated params between files
+MAX_F = 0.1 #0.006
+STATIC_K = 0.06 #0.02
 
-# range of legal values (should abs val & div 10 till we get to this range)
-F_RANGE = (0.006, 0.11)
-K_RANGE = (0.02, 0.07)
+class GrayScottBot(tweepy.StreamListener):
 
-ONES = np.ones(IMAGE_SIZE)
-ZEROS = np.zeros(IMAGE_SIZE)
-KERNEL = np.array([0, 1, 0, 1, -4, 1, 0, 1, 0]).reshape((3,3)) / X_STEP**2
+	def on_direct_message(self, status):
+		author = status.author.screen_name
+		self.direct_message(author)
 
 
-def generate_image(feed, kill):
-	U, V = init(feed, kill)
-
-	for i in range(MAX_ITERS):
-		du = du_dt(U, V, feed, kill, R_U)
-		dv = dv_dt(U, V, feed, kill, R_V)
-		U += du * T_STEP
-		V += dv * T_STEP
-		if i % 100 == 0:
-			image.imsave('images/U_{:05d}.png'.format(i), U, cmap='plasma')
-
-	subprocess.call(['convert',
-		'-delay', '10',
-		'-loop', '0',
-		'images/U_*.png',
-		IMAGE_FILE])
+	def get_feed_matrix_from_profile_pic(self, username):
+		img_url = api.get_user(username).profile_image_url_https
+		img_url = ''.join(img_url.split('_normal'))
+		response = requests.get(img_url, stream=True)
+		if response.status_code != 200:
+			print 'didn\'t get image :('
+			return 0.040
+		with open(PIC_FILE, 'w') as f:
+			f.write(response.raw.read())
+		img = Image.open(PIC_FILE).convert(mode='L').resize((N_X, N_X))
+		img.save(PIC_FILE)
+		return matplotlib.image.pil_to_array(img) / 255.0 * MAX_F
 
 
-# see mrob's paper on u-skate
-def init(f, k):
-	# background
-	if k < (np.sqrt(f) - 2*f) / 2.0:
-		A = np.sqrt(f) / (f + k)
-		sqrt = np.sqrt(A**2 - 4.0)
-		u_back = (A - sqrt) / (2 * A)
-		v_back = np.sqrt(f) * (A + sqrt) / 2.0
-	else:
-		u_back = 0.0
-		v_back = 1.0
-
-	U = np.full(IMAGE_SIZE, u_back)
-	V = np.full(IMAGE_SIZE, v_back)
-
-	# rectangles
-	for i in range(np.random.randint(40)):
-		# dimensions
-		w = np.random.randint(1, IMAGE_SIZE[0] / 8)
-		h = np.random.randint(1, IMAGE_SIZE[0] / 8)
-		# coords of top left corner
-		x = np.random.randint(0, IMAGE_SIZE[0] - w)
-		y = np.random.randint(0, IMAGE_SIZE[0] - h)
-		# fill values
-		u_rect = np.random.random_sample()
-		v_rect = np.random.random_sample()
-
-		U[x:x+w, y:y+h] = u_rect
-		V[x:x+w, y:y+h] = v_rect
-
-	return U, V
+	def random_post(self):
+		feed = sample_feed()
+		kill = sample_kill(feed)
+		message = 'f={:f}, k={:f}'.format(feed, kill)
+		print message
+		output_file = generate_image(feed, kill)
+		#api.update_with_media(output_file, message)
 
 
-def laplace(A):
-	#A = ndimage.filters.gaussian_filter(A, 1, mode='wrap')
-	return ndimage.filters.convolve(A, KERNEL, mode='wrap')
-
-def du_dt(U, V, f, k, ru):
-	return ru * laplace(U) - U * V**2 + f * (ONES - U)
-
-def dv_dt(U, V, f, k, rv):
-	return rv * laplace(V) + U * V**2 - (f + k) * V
+	def direct_message(self, username):
+		kill = STATIC_K
+		feed = self.get_feed_matrix_from_profile_pic(username)
+		message = '@{}'.format(username)
+		print message
+		output_file = generate_image(feed, kill)
+		#api.update_with_media(output_file, message)
 
 
-def random_post():
-	feed = sample_feed() #   # 0.034 #
-	kill = sample_kill(feed) #   #0.063 #
-	message = 'f={:f}, k={:f}'.format(feed, kill)
-	print message
-	generate_image(feed, kill)
-	#api.update_with_media(IMAGE_FILE, message)
+def main():
+	bot = GrayScottBot()
+	bot.direct_message('bachesch')
+	#bot.random_post()
 
-def sample_feed():
-	# split range into buckets, select bucket weighted by kill_var
-	b_i = np.random.choice(len(buckets), p=bucket_probs)
-	b = buckets[b_i]
-	# choose feed uniformly within bucket
-	return np.random.uniform(b[0], b[1])
-
-def sample_kill(feed):
-	return kill_mean(feed) + kill_var(feed)
+	#stream = Stream(auth, bot)
+	#stream.userstream()
 
 
 if __name__ == '__main__':
-	#while True:
-	random_post()
-	#time.sleep(DELAY_IN_SEC)
-
+	main()

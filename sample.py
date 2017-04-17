@@ -38,3 +38,14 @@ def kill_mean(x):
 def kill_var(x):
 	var = -1 * 0.13462 * x + 0.016808
 	return np.random.random_sample() * var - var / 2.0
+
+
+def sample_feed():
+	# split range into buckets, select bucket weighted by kill_var
+	b_i = np.random.choice(len(buckets), p=bucket_probs)
+	b = buckets[b_i]
+	# choose feed uniformly within bucket
+	return np.random.uniform(b[0], b[1])
+
+def sample_kill(feed):
+	return kill_mean(feed) + kill_var(feed)
