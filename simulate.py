@@ -8,29 +8,26 @@ import subprocess
 
 # params
 IMAGE_FILE = 'output.gif'
-N_X = 256
-GRID_SIZE = (N_X, N_X)
-MAX_ITERS = 10000
-R_U = 0.2097 #2e-5
-R_V = 0.105 #1e-5
-#H = 0.01 #1.0 / 143
-D_T = 0.8 #0.9 * H**2 / (4 * R_U)
+MAX_ITERS = 7000
+R_U = 0.2097
+R_V = 0.105
+D_T = 0.8
 
-# range of legal values (should abs val & div 10 till we get to this range)
 F_RANGE = (0.006, 0.11)
-K_RANGE = (0.02, 0.07)
-
-ONES = np.ones(GRID_SIZE)
 
 
 def generate_image(feed, kill):
-	U, V = init(feed, kill)
+	if isinstance(feed, np.ndarray):
+		grid_size = feed.shape
+	else:
+		grid_size = (256, 256)
+	U, V = init(feed, kill, grid_size)
 
 	for i in range(MAX_ITERS):
-		du = du_dt(U, V, feed, kill)
-		dv = dv_dt(U, V, feed, kill)
+		du = du_dt(U, V, feed, kill, grid_size)
+		dv = dv_dt(U, V, feed, kill, grid_size)
 
-		if i % 100 == 0:
+		if i > 1000 and i % 100 == 0:
 			image.imsave('images/U_{:05d}.png'.format(i), U, cmap='plasma')
 
 		U += du * D_T
@@ -48,16 +45,15 @@ def generate_image(feed, kill):
 def laplace(A):
 	return ndimage.filters.laplace(A, mode='wrap')
 
-def du_dt(U, V, f, k):
-	return R_U * laplace(U) - U * V**2 + f * (ONES - U)
+def du_dt(U, V, f, k, grid_size):
+	return R_U * laplace(U) - U * V**2 + f * (np.ones(grid_size) - U)
 
-def dv_dt(U, V, f, k):
+def dv_dt(U, V, f, k, grid_size):
 	return R_V * laplace(V) + U * V**2 - (f + k) * V
 
 
 # see mrob's paper on u-skate
-def init(f, k):
-
+def init(f, k, grid_size):
 	# background
 	if not isinstance(f, np.ndarray) and k < (np.sqrt(f) - 2*f) / 2.0:
 		A = np.sqrt(f) / (f + k)
@@ -68,17 +64,18 @@ def init(f, k):
 		u_back = 0.0
 		v_back = 1.0
 
-	U = np.full(GRID_SIZE, u_back)
-	V = np.full(GRID_SIZE, v_back)
+	U = np.full(grid_size, u_back)
+	V = np.full(grid_size, v_back)
 
 	# rectangles
+	nx, ny = grid_size
 	for i in range(np.random.randint(40)):
 		# dimensions
-		w = np.random.randint(3, N_X / 8)
-		h = np.random.randint(3, N_X / 8)
+		w = np.random.randint(3, nx / 8)
+		h = np.random.randint(3, ny / 8)
 		# coords of top left corner
-		x = np.random.randint(0, N_X - w)
-		y = np.random.randint(0, N_X - h)
+		x = np.random.randint(0, nx - w)
+		y = np.random.randint(0, ny - h)
 		# fill values
 		u_rect = np.random.random_sample()
 		v_rect = np.random.random_sample()
@@ -88,3 +85,9 @@ def init(f, k):
 
 	return U, V
 
+
+def sample_feed():
+	return np.random.uniform(F_RANGE[0], F_RANGE[1])
+
+def sample_kill(feed):
+	return -1 * 2.937 * feed**2 + 0.6580 * feed + 0.01616

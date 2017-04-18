@@ -11,4 +11,4 @@ People who are much smarter and better at coding than me.
 ## To-Dos
 
 * simulation is iffy, can't get nu?
-* find interesting param settings for seeding from profile pic, choose randomly from them
+* fix some of the tweeting behavior (e.g. retweets)
