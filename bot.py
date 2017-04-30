@@ -71,7 +71,7 @@ class GrayScottBot(tweepy.StreamListener):
 		message = 'f={:f}, k={:f}'.format(feed, kill)
 		print message
 		output_file = generate_image(feed, kill)
-		#api.update_with_media(output_file, message)
+		api.update_with_media(output_file, message)
 
 
 	def direct_message(self, username, img_url, tweet_id):
@@ -82,7 +82,7 @@ class GrayScottBot(tweepy.StreamListener):
 			message = 'f={}, k={} @{}'.format(max_f, kill, username)
 			print message
 			output_file = generate_image(feed, kill)
-			#api.update_with_media(output_file, message, in_reply_to_status_id=tweet_id)
+			api.update_with_media(output_file, message, in_reply_to_status_id=tweet_id)
 			print 'done!'
 		except Exception as e:
 			print 'couldn\'t create status :', e
