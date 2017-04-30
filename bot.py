@@ -64,7 +64,7 @@ class GrayScottBot(tweepy.StreamListener):
 		message = 'f={:f}, k={:f}'.format(feed, kill)
 		print message
 		output_file = generate_image(feed, kill)
-		#api.update_with_media(output_file, message)
+		api.update_with_media(output_file, message)
 
 
 	def direct_message(self, username, img_url):
@@ -85,6 +85,7 @@ def main():
 	bot = GrayScottBot()
 
 	stream = tweepy.Stream(auth, bot)
+	print 'up and running!'
 	stream.userstream(_with='user')
 
 
