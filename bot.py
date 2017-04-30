@@ -4,13 +4,15 @@
 import os
 import requests
 import time
-import tweepy
-from PIL import Image
+
 import matplotlib
 import numpy as np
+from PIL import Image
 from scipy import misc
+import tweepy
 
-from simulate import generate_image, sample_feed, sample_kill
+from simulate import generate_image
+from sample import *
 
 # twitter auth
 consumer_key = os.environ['CONSUMER_KEY']
@@ -65,24 +67,22 @@ class GrayScottBot(tweepy.StreamListener):
 
 
 	def random_post(self):
-		# TODO if we want to do this, need to fix sampling or simulation
-		feed = sample_feed()
-		kill = sample_kill(feed)
+		feed, kill = sample()
 		message = 'f={:f}, k={:f}'.format(feed, kill)
 		print message
 		output_file = generate_image(feed, kill)
-		api.update_with_media(output_file, message)
+		#api.update_with_media(output_file, message)
 
 
 	def direct_message(self, username, img_url, tweet_id):
 		try:
-			max_f = sample_feed()
+			max_f = sample_max_feed()
 			kill = sample_kill(max_f)
 			feed = max_f * self.get_feed_matrix_from_image(img_url)
 			message = 'f={}, k={} @{}'.format(max_f, kill, username)
 			print message
 			output_file = generate_image(feed, kill)
-			api.update_with_media(output_file, message, in_reply_to_status_id=tweet_id)
+			#api.update_with_media(output_file, message, in_reply_to_status_id=tweet_id)
 			print 'done!'
 		except Exception as e:
 			print 'couldn\'t create status :', e

@@ -13,8 +13,6 @@ R_U = 0.2097
 R_V = 0.105
 D_T = 0.8
 
-F_RANGE = (0.006, 0.11)
-
 
 def generate_image(feed, kill):
 	if isinstance(feed, np.ndarray):
@@ -85,9 +83,3 @@ def init(f, k, grid_size):
 
 	return U, V
 
-
-def sample_feed():
-	return np.random.uniform(F_RANGE[0], F_RANGE[1])
-
-def sample_kill(feed):
-	return -1 * 2.937 * feed**2 + 0.6580 * feed + 0.01616
