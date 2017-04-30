@@ -89,6 +89,10 @@ class GrayScottBot(tweepy.StreamListener):
 
 
 def main():
+	# set up images dir if needed
+	if not os.path.exists('images'):
+		os.makedirs('images')
+
 	bot = GrayScottBot()
 	print 'up and running!'
 
