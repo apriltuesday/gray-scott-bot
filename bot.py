@@ -1,17 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import tweepy
+import os
 import requests
+import time
+import tweepy
 from PIL import Image
 import matplotlib
 import numpy as np
 from scipy import misc
 
-from credentials import *
 from simulate import generate_image, sample_feed, sample_kill
 
 # twitter auth
+consumer_key = os.environ['CONSUMER_KEY']
+consumer_secret = os.environ['CONSUMER_SECRET']
+access_token = os.environ['ACCESS_TOKEN']
+access_token_secret = os.environ['ACCESS_TOKEN_SECRET']
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth)
@@ -23,7 +28,9 @@ BOT_NAME = 'GrayScottBot'
 class GrayScottBot(tweepy.StreamListener):
 
 	def on_status(self, status):
+		tweet_id = status.id
 		username = status.author.screen_name
+
 		if username == BOT_NAME:
 			return
 		# stop if someone just retweeted you, gets obnoxious
@@ -32,7 +39,7 @@ class GrayScottBot(tweepy.StreamListener):
 			and status.retweeted_status.author.screen_name == BOT_NAME):
 			return
 
-		print 'status received'
+		print 'status {} received'.format(tweet_id)
 		try:
 			media = status.entities['media'][0]
 			if media['type'] == 'photo':
@@ -40,7 +47,7 @@ class GrayScottBot(tweepy.StreamListener):
 		except: #get profile pic if no image in message
 			img_url = api.get_user(username).profile_image_url_https
 			img_url = ''.join(img_url.split('_normal'))
-		self.direct_message(username, img_url)
+		self.direct_message(username, img_url, tweet_id)
 
 
 	def get_feed_matrix_from_image(self, img_url):
@@ -67,7 +74,7 @@ class GrayScottBot(tweepy.StreamListener):
 		api.update_with_media(output_file, message)
 
 
-	def direct_message(self, username, img_url):
+	def direct_message(self, username, img_url, tweet_id):
 		try:
 			max_f = sample_feed()
 			kill = sample_kill(max_f)
@@ -75,18 +82,24 @@ class GrayScottBot(tweepy.StreamListener):
 			message = 'f={}, k={} @{}'.format(max_f, kill, username)
 			print message
 			output_file = generate_image(feed, kill)
-			api.update_with_media(output_file, message)
+			api.update_with_media(output_file, message, in_reply_to_status_id=tweet_id)
 			print 'done!'
-		except:
-			print 'couldn\'t create status :('
+		except Exception as e:
+			print 'couldn\'t create status :', e
 
 
 def main():
 	bot = GrayScottBot()
-
-	stream = tweepy.Stream(auth, bot)
 	print 'up and running!'
-	stream.userstream(_with='user')
+
+	# reply to DMs
+	stream = tweepy.Stream(auth, bot)
+	stream.userstream(_with='user', async=True)
+
+	# post randomly every hour
+	while True:
+		bot.random_post()
+		time.sleep(3600)
 
 
 if __name__ == '__main__':

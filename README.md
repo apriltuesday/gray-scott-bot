@@ -11,4 +11,4 @@ People who are much smarter and better at coding than me.
 ## To-Dos
 
 * simulation is iffy, can't get nu?
-* should reply to original tweet
+* resize and retry if file too big
