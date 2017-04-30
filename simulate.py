@@ -8,7 +8,7 @@ import subprocess
 
 # params
 IMAGE_FILE = 'output.gif'
-MAX_ITERS = 7000
+MAX_ITERS = 5000
 R_U = 0.2097
 R_V = 0.105
 D_T = 0.8
@@ -25,7 +25,7 @@ def generate_image(feed, kill):
 		du = du_dt(U, V, feed, kill, grid_size)
 		dv = dv_dt(U, V, feed, kill, grid_size)
 
-		if i > 1000 and i % 100 == 0:
+		if i > 900 and i % 100 == 0:
 			image.imsave('images/U_{:05d}.png'.format(i), U, cmap='plasma')
 
 		U += du * D_T

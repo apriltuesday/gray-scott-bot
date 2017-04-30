@@ -6,7 +6,7 @@ import numpy as np
 ### for random posting ###
 
 # Strategy:
-# sets of f & k buckets
+# set of buckets of f & k values
 # choose bucket based on its area
 # choose uniformly from f bucket
 # choose uniformly from k bucket
