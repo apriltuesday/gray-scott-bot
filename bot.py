@@ -12,7 +12,7 @@ from scipy import misc
 import tweepy
 
 from simulate import generate_image
-from sample import *
+from sample import sample
 
 # twitter auth
 consumer_key = os.environ['CONSUMER_KEY']
@@ -23,6 +23,7 @@ auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth)
 
+MAX_IMG_SIZE = 512
 PIC_FILE = 'tmp.jpg'
 BOT_NAME = 'GrayScottBot'
 
@@ -60,26 +61,29 @@ class GrayScottBot(tweepy.StreamListener):
 		with open(PIC_FILE, 'w') as f:
 			f.write(response.raw.read())
 		img = Image.open(PIC_FILE).convert(mode='L')
-		if img.size[0] > 256:
-			ratio = 256.0 / img.size[0]
-			img = img.resize((256, int(img.size[1] * ratio)))
+		if img.size[0] > MAX_IMG_SIZE:
+			ratio = float(MAX_IMG_SIZE) / img.size[0]
+			img = img.resize((MAX_IMG_SIZE, int(img.size[1] * ratio)))
 		return matplotlib.image.pil_to_array(img) / 255.0
 
 
 	def random_post(self):
-		feed, kill = sample()
-		message = 'f={:f}, k={:f}'.format(feed, kill)
-		print message
-		output_file = generate_image(feed, kill)
-		api.update_with_media(output_file, message)
+		try:
+			feed, kill = sample()
+			message = 'f={:f}, k={:f}'.format(feed, kill)
+			print message
+			output_file = generate_image(feed, kill)
+			api.update_with_media(output_file, message)
+			print 'done!'
+		except Exception as e:
+			print 'couldn\'t create status :', e
 
 
 	def direct_message(self, username, img_url, tweet_id):
 		try:
-			max_f = sample_max_feed()
-			kill = sample_kill(max_f)
-			feed = max_f * self.get_feed_matrix_from_image(img_url)
-			message = 'f={}, k={} @{}'.format(max_f, kill, username)
+			kill = 0.062
+			feed = (1.0 - self.get_feed_matrix_from_image(img_url)) * 0.045 + 0.015
+			message = '@{}'.format(username)
 			print message
 			output_file = generate_image(feed, kill)
 			api.update_with_media(output_file, message, in_reply_to_status_id=tweet_id)
@@ -100,10 +104,10 @@ def main():
 	stream = tweepy.Stream(auth, bot)
 	stream.userstream(_with='user', async=True)
 
-	# post randomly every hour
+	# post randomly every 4 hours
 	while True:
 		bot.random_post()
-		time.sleep(3600)
+		time.sleep(14400)
 
 
 if __name__ == '__main__':

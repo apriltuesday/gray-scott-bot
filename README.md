@@ -10,5 +10,4 @@ People who are much smarter and better at coding than me.
 
 ## To-Dos
 
-* simulation is iffy, can't get nu?
-* resize and retry if file too big
+* just missing iota now!
