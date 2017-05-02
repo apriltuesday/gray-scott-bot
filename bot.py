@@ -85,7 +85,7 @@ class GrayScottBot(tweepy.StreamListener):
 			feed = (1.0 - self.get_feed_matrix_from_image(img_url)) * 0.045 + 0.015
 			message = '@{}'.format(username)
 			print message
-			output_file = generate_image(feed, kill)
+			output_file = generate_image(feed, kill, frame_offset=4000)
 			api.update_with_media(output_file, message, in_reply_to_status_id=tweet_id)
 			print 'done!'
 		except Exception as e:
@@ -93,10 +93,6 @@ class GrayScottBot(tweepy.StreamListener):
 
 
 def main():
-	# set up images dir if needed
-	if not os.path.exists('images'):
-		os.makedirs('images')
-
 	bot = GrayScottBot()
 	print 'up and running!'
 

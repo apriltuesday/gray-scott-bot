@@ -9,25 +9,29 @@ import subprocess
 
 # params
 IMAGE_FILE = 'output.gif'
+IMAGE_DIR = 'images'
 MAX_ITERS = 10000
 R_U = 0.2097
 R_V = 0.105
 D_T = 0.8
 
 
-def generate_image(feed, kill):
+def generate_image(feed, kill, frame_offset=0):
+	if not os.path.exists(IMAGE_DIR):
+		os.makedirs(IMAGE_DIR)
+
 	if isinstance(feed, np.ndarray):
 		grid_size = feed.shape
 	else:
 		grid_size = (256, 256)
 	U, V = init(feed, kill, grid_size)
 
-	for i in range(MAX_ITERS):
+	for i in range(MAX_ITERS+frame_offset):
 		du = du_dt(U, V, feed, kill, grid_size)
 		dv = dv_dt(U, V, feed, kill, grid_size)
 
-		if i > 900 and i % 200 == 0:
-			image.imsave('images/U_{:05d}.png'.format(i), U, cmap='plasma')
+		if i > 900+frame_offset and i % 200 == 0:
+			image.imsave('{}/U_{:05d}.png'.format(IMAGE_DIR, i), U, cmap='plasma')
 
 		U += du * D_T
 		V += dv * D_T
@@ -88,9 +92,10 @@ def save_image():
 			'-layers', 'optimize',
 			'-fuzz', '{}%'.format(fuzz),
 			'-resize', '256',
-			'images/U_*.png',
+			'{}/U_*.png'.format(IMAGE_DIR),
 			IMAGE_FILE])
 		if os.path.getsize(IMAGE_FILE) < 3000000L:
 			break
 		fuzz += 2
+	subprocess.call(['rm', '-r', IMAGE_DIR])
 	return IMAGE_FILE
