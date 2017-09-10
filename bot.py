@@ -98,7 +98,7 @@ def main():
 
 	# reply to DMs
 	stream = tweepy.Stream(auth, bot)
-	stream.userstream(_with='user', async=True)
+	stream.filter(track=[BOT_NAME], async=True)
 
 	# post randomly every 4 hours
 	while True:
