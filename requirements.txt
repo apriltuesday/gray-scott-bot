@@ -1,4 +1,4 @@
-tweepy
+tweepy==3.2.0
 numpy
 scipy
 Pillow==2.6.0
